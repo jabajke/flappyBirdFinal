@@ -1,4 +1,5 @@
 import pygame
+from random import randint
 
 pygame.init()
 
@@ -25,6 +26,11 @@ timer = 10
 
 pipes = []
 bges = [pygame.Rect(0, 0, 288, 600)]
+pipesScore = []
+
+pipeSpeed = 3
+pipeGateSize = 200
+pipeGatePos = HEIGHT // 2
 
 lives = 3
 scores = 0
@@ -43,10 +49,11 @@ while play:
         timer -= 1
 
     frame = (frame + 0.2) % 4
+    pipeSpeed = 3 + scores // 100
 
     for i in range(len(bges) - 1, -1, -1):
         bg = bges[i]
-        bg.x -= 1
+        bg.x -= pipeSpeed // 2
 
         if bg.right < 0:
             bges.remove(bg)
@@ -60,7 +67,8 @@ while play:
 
         if pipe.right < 0:
             pipes.remove(pipe)
-
+            if pipe in pipesScore:
+                pipesScore.remove(pipe)
     if state == 'start':
         if click and timer == 0 and len(pipes) == 0:
             state = 'play'
@@ -79,8 +87,16 @@ while play:
         player.y = py
 
         if len(pipes) == 0 or pipes[len(pipes) - 1].x < WIDTH - 200:
-            pipes.append(pygame.Rect(WIDTH, 0, 52, 200))
-            pipes.append(pygame.Rect(WIDTH, 400, 52, 200))
+            pipes.append(pygame.Rect(WIDTH, 0, 52, pipeGatePos - pipeGateSize // 2))
+            pipes.append(
+                pygame.Rect(WIDTH, pipeGatePos + pipeGateSize // 2, 52, HEIGHT - pipeGatePos - pipeGateSize // 2))
+
+            pipeGatePos += randint(-100, 100)
+
+            if pipeGatePos < pipeGateSize:
+                pipeGatePos = pipeGateSize
+            elif pipeGatePos > HEIGHT - pipeGateSize:
+                pipeGatePos = HEIGHT - pipeGateSize
 
         if player.top < 0 or player.bottom > HEIGHT:
             state = 'fall'
@@ -88,15 +104,19 @@ while play:
         for pipe in pipes:
             if player.colliderect(pipe):
                 state = 'fall'
+            if pipe.right < player.left and pipe not in pipesScore:
+                pipesScore.append(pipe)
+                scores += 5
 
     elif state == 'fall':
         sy, ay = 0, 0
-        state = 'start'
-        timer = 60
-
-    else:
-        pass
-
+        lives -= 1
+        if lives > 0:
+            state = 'start'
+            timer = 30
+            pipes = []
+        else:
+            exit()
     window.fill('black')
     for bg in bges:
         window.blit(imgBG, bg)
